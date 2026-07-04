@@ -1,0 +1,291 @@
+<!-- @dsCard group="Tokens" -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Design Tokens — Fluent 2 DS</title>
+  <link rel="stylesheet" href="../styles.css" />
+  <link rel="stylesheet" href="../_ds_bundle.css" />
+  <style>
+    :root { color-scheme: light; }
+    body { margin: 0; padding: 24px 28px 64px; background: #faf9f8; color: #242424;
+           font-family: "Segoe UI", system-ui, -apple-system, sans-serif; }
+    h1 { font-size: 22px; margin: 0 0 2px; }
+    .sub { color: #616161; margin: 0 0 24px; font-size: 13px; max-width: 780px; }
+    .sub code { background: #efedeb; padding: 1px 5px; border-radius: 4px; }
+    .sec { margin: 0 0 34px; }
+    .sec > h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em;
+                color: #424242; margin: 0 0 3px; }
+    .sec > h2 .count { color: #a19f9d; font-weight: 400; margin-left: 6px; text-transform: none; letter-spacing: 0; }
+    .sec .desc { color: #616161; font-size: 12px; margin: 0 0 14px; }
+    .sec > hr { border: 0; border-top: 1px solid #edebe9; margin: 0 0 14px; }
+    .grid { display: flex; flex-wrap: wrap; gap: 14px; }
+    .sw { display: flex; flex-direction: column; gap: 6px; width: 122px; }
+    .sw .chip { height: 54px; border-radius: 6px; border: 1px solid rgba(0,0,0,.08);
+                box-shadow: inset 0 0 0 1px rgba(0,0,0,.02); }
+    .sw .meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    code, .mono { font: 11px/1.45 "Cascadia Code", "SF Mono", Consolas, monospace; }
+    .k { font-weight: 600; color: #242424; word-break: break-all; }
+    .v { color: #808080; }
+    /* spacing bars */
+    .barrow { display: flex; align-items: center; gap: 10px; height: 22px; }
+    .barrow .bar { background: #117865; height: 12px; border-radius: 3px; min-width: 1px; }
+    .barrow .lbl { width: 150px; flex: none; }
+    /* radius / shadow boxes */
+    .box { width: 92px; height: 62px; background: #fff; border: 1px solid #e1dfdd;
+           display: grid; place-items: center; }
+    .shadowbox { width: 108px; height: 68px; border-radius: 8px; background: #fff; }
+    /* type samples */
+    .type { display: flex; align-items: baseline; gap: 14px; padding: 4px 0;
+            border-bottom: 1px dashed #edebe9; }
+    .type .sample { color: #201f1e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .type .info { margin-left: auto; text-align: right; flex: none; }
+    /* opacity checker */
+    .checker { width: 92px; height: 62px; border-radius: 6px; border: 1px solid #e1dfdd;
+      background-image: linear-gradient(45deg,#ccc 25%,transparent 25%),linear-gradient(-45deg,#ccc 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ccc 75%),linear-gradient(-45deg,transparent 75%,#ccc 75%);
+      background-size: 14px 14px; background-position: 0 0,0 7px,7px -7px,-7px 0; display: grid; place-items: center; }
+    .checker > span { width: 60px; height: 40px; border-radius: 4px; background: #242424; }
+    /* motion */
+    @keyframes dsslide { from { transform: translateX(0); } to { transform: translateX(120px); } }
+    .track { width: 168px; height: 26px; background: #f3f2f1; border-radius: 13px; display: flex; align-items: center; padding: 0 3px; }
+    .track > i { width: 20px; height: 20px; border-radius: 50%; background: #117865; animation: dsslide 1.4s infinite alternate; }
+    table { border-collapse: collapse; font-size: 13px; }
+    th, td { border: 1px solid #edebe9; padding: 6px 12px; text-align: left; background: #fff; }
+    th { background: #f3f2f1; font-weight: 600; }
+    td.mono { color: #605e5c; }
+    .err { color: #a4262c; font: 13px "Segoe UI"; }
+  </style>
+</head>
+<body>
+  <div id="root"><p class="err" id="fallback">Loading design tokens… if this persists, ensure <code>_ds_bundle.js</code> is built.</p></div>
+
+  <script src="../_vendor/react.js"></script>
+  <script src="../_vendor/react-dom.js"></script>
+  <script src="../_ds_bundle.js"></script>
+  <script>
+  (function () {
+    var h = React.createElement, F = React.Fragment;
+    var DS = window.LumelFluent2Ds || {};
+    var FluentProvider = DS.FluentProvider;
+    var theme = DS.lightTheme;
+
+    if (!FluentProvider || !DS.spacing) {
+      document.getElementById("fallback").textContent =
+        "⚠ window.LumelFluent2Ds not found or missing token exports — build the bundle first.";
+      return;
+    }
+
+    // ── helpers ──────────────────────────────────────────────────────────────
+    function rgbToHex(c) {
+      c = (c || "").trim();
+      var m = /rgba?\(([^)]+)\)/.exec(c);
+      if (!m) return c;
+      var p = m[1].split(",").map(function (x) { return x.trim(); });
+      function hx(n) { return ("0" + Math.round(parseFloat(n)).toString(16)).slice(-2); }
+      var hex = "#" + hx(p[0]) + hx(p[1]) + hx(p[2]);
+      if (p[3] !== undefined && parseFloat(p[3]) < 1) hex += hx(parseFloat(p[3]) * 255);
+      return hex.toUpperCase();
+    }
+
+    // Resolves the computed value of `prop` after applying `css` to a hidden probe.
+    // Used to turn var(--token) references into their concrete light-theme value.
+    function Resolved(props) {
+      var ref = React.useRef(null);
+      var s = React.useState(props.fallback || props.css), val = s[0], set = s[1];
+      React.useLayoutEffect(function () {
+        if (!ref.current) return;
+        var cv = getComputedStyle(ref.current).getPropertyValue(props.prop);
+        if (cv) set(props.color ? rgbToHex(cv) : cv.trim());
+      }, [props.prop, props.css]);
+      var ps = { position: "absolute", left: "-9999px", top: "-9999px", display: "inline-block", visibility: "hidden" };
+      ps[props.styleProp || props.prop] = props.css;
+      return h(F, null, h("span", { ref: ref, style: ps, "aria-hidden": true }), val);
+    }
+
+    function Section(title, count, desc, body) {
+      return h("section", { className: "sec" },
+        h("h2", null, title, count != null ? h("span", { className: "count" }, "(" + count + ")") : null),
+        desc ? h("p", { className: "desc" }, desc) : null,
+        h("hr", null),
+        body
+      );
+    }
+
+    function ColorSwatch(name, value, resolve) {
+      return h("div", { className: "sw", key: name },
+        h("div", { className: "chip", style: { background: value } }),
+        h("div", { className: "meta" },
+          h("code", { className: "k" }, name),
+          h("code", { className: "v" },
+            resolve ? h(Resolved, { prop: "background-color", styleProp: "background", css: value, color: true, fallback: value })
+                    : String(value))
+        )
+      );
+    }
+
+    // ── data ─────────────────────────────────────────────────────────────────
+    var out = [];
+
+    // Brand ramp (literal hex)
+    out.push(Section("Brand ramp", Object.keys(DS.brandColors).length,
+      "16-shade brand palette. createLightTheme()/createDarkTheme() derive every colorBrand* token from this ramp.",
+      h("div", { className: "grid" },
+        Object.keys(DS.brandColors).map(function (k) {
+          return ColorSwatch("brand " + k, DS.brandColors[k], false);
+        }))));
+
+    // Spacing (var refs → resolve to px)
+    (function () {
+      var keys = Object.keys(DS.spacing.horizontal);
+      function scale(axis) {
+        return h("div", null,
+          h("code", { className: "k", style: { display: "block", margin: "0 0 6px" } }, "spacing." + axis),
+          keys.map(function (k) {
+            var val = DS.spacing[axis][k];
+            return h("div", { className: "barrow", key: k },
+              h("code", { className: "lbl mono" }, k, " ",
+                h("span", { className: "v" }, h(Resolved, { prop: "width", css: val, fallback: val }))),
+              h("div", { className: "bar", style: { width: val } }));
+          }));
+      }
+      out.push(Section("Spacing", keys.length * 2,
+        "Horizontal (padding-left/right, column gap) and vertical (padding-top/bottom, row gap) ramps.",
+        h("div", { className: "grid", style: { gap: "40px" } }, scale("horizontal"), scale("vertical"))));
+    })();
+
+    // Border radius
+    out.push(Section("Border radius", Object.keys(DS.borderRadius).length,
+      "Corner rounding scale. circular = pill / full round.",
+      h("div", { className: "grid" },
+        Object.keys(DS.borderRadius).map(function (k) {
+          var val = DS.borderRadius[k];
+          return h("div", { className: "sw", key: k },
+            h("div", { className: "box", style: { borderRadius: val, background: "#eff6f3", borderColor: "#7fd0bd" } }),
+            h("div", { className: "meta" },
+              h("code", { className: "k" }, "borderRadius." + k),
+              h("code", { className: "v" }, h(Resolved, { prop: "border-top-left-radius", styleProp: "borderTopLeftRadius", css: val, fallback: val }))));
+        }))));
+
+    // Typography
+    (function () {
+      var ts = DS.typography.textStyles;
+      out.push(Section("Typography", Object.keys(ts).length,
+        "Pre-composed text styles (font-size / weight / line-height). Prefer the typography components (Title1, Body, Caption…).",
+        h("div", null, Object.keys(ts).map(function (k) {
+          var st = ts[k];
+          return h("div", { className: "type", key: k },
+            h("div", { className: "sample", style: { fontSize: st.fontSize, fontWeight: st.fontWeight, lineHeight: st.lineHeight } }, "The quick brown fox"),
+            h("div", { className: "info" },
+              h("code", { className: "k" }, k), " ",
+              h("code", { className: "v" },
+                h(Resolved, { prop: "font-size", css: st.fontSize, fallback: st.fontSize }),
+                " · ", String(st.fontWeight))));
+        }))));
+    })();
+
+    // Elevation / shadows
+    out.push(Section("Elevation", 6,
+      "Shadow ramp communicating z-axis layering. Brand-tinted variants exist at shadows.brand.*.",
+      h("div", { className: "grid", style: { gap: "22px" } },
+        [2, 4, 8, 16, 28, 64].map(function (k) {
+          return h("div", { className: "sw", key: k, style: { width: "116px" } },
+            h("div", { className: "shadowbox", style: { boxShadow: DS.shadows[k] } }),
+            h("code", { className: "k" }, "shadows." + k));
+        }))));
+
+    // Semantic colors (var refs → resolve)
+    (function () {
+      var groups = DS.semanticColors, blocks = [];
+      Object.keys(groups).forEach(function (g) {
+        var set = groups[g];
+        blocks.push(h("div", { key: g, style: { marginBottom: "14px" } },
+          h("code", { className: "k", style: { display: "block", margin: "0 0 6px" } }, "semanticColors." + g),
+          h("div", { className: "grid" }, Object.keys(set).map(function (kk) {
+            return ColorSwatch(kk, set[kk], true);
+          }))));
+      });
+      out.push(Section("Semantic colors", null,
+        "Intent-based color aliases that resolve to the active theme at runtime (shown here under lightTheme).",
+        h("div", null, blocks)));
+    })();
+
+    // Data viz (literal hex under light theme)
+    out.push(Section("Data visualization", Object.keys(DS.dataVizColorsLight).length,
+      "Categorical data slots, sequential/diverging ramps, and alert colors (lightTheme values).",
+      h("div", { className: "grid", style: { gap: "8px" } },
+        Object.keys(DS.dataVizColorsLight).map(function (k) {
+          return h("div", { className: "sw", key: k, style: { width: "84px" } },
+            h("div", { className: "chip", style: { background: DS.dataVizColorsLight[k], height: "38px" } }),
+            h("code", { className: "k", style: { fontSize: "10px" } }, k.replace("color", "")));
+        }))));
+
+    // Ribbon icon colors (literal hex)
+    out.push(Section("Ribbon icon colors", Object.keys(DS.ribbonColorsLight).length,
+      "Custom icon colors for ribbons/toolbars (lightTheme values). Theme-aware via ribbonTokens.",
+      h("div", { className: "grid" },
+        Object.keys(DS.ribbonColorsLight).map(function (k) {
+          return ColorSwatch(k.replace("colorRibbonIcon", ""), DS.ribbonColorsLight[k], false);
+        }))));
+
+    // Opacity
+    out.push(Section("Opacity", Object.keys(DS.opacity).length,
+      "Alpha multipliers for interaction and overlay states.",
+      h("div", { className: "grid" },
+        Object.keys(DS.opacity).map(function (k) {
+          return h("div", { className: "sw", key: k },
+            h("div", { className: "checker" }, h("span", { style: { opacity: DS.opacity[k] } })),
+            h("div", { className: "meta" },
+              h("code", { className: "k" }, "opacity." + k),
+              h("code", { className: "v" }, String(DS.opacity[k]))));
+        }))));
+
+    // Motion
+    (function () {
+      var d = DS.motion.duration, e = DS.motion.easing;
+      var rows = h("div", { className: "grid", style: { gap: "26px" } },
+        h("div", null,
+          h("code", { className: "k", style: { display: "block", margin: "0 0 8px" } }, "motion.duration"),
+          Object.keys(d).map(function (k) {
+            return h("div", { className: "barrow", key: k, style: { height: "30px" } },
+              h("code", { className: "lbl mono" }, k, " ",
+                h("span", { className: "v" }, h(Resolved, { prop: "transition-duration", styleProp: "transitionDuration", css: d[k], fallback: d[k] }))),
+              h("div", { className: "track" }, h("i", { style: { animationDuration: d[k] } })));
+          })),
+        h("div", null,
+          h("code", { className: "k", style: { display: "block", margin: "0 0 8px" } }, "motion.easing"),
+          Object.keys(e).map(function (k) {
+            return h("div", { className: "barrow", key: k, style: { height: "30px" } },
+              h("code", { className: "lbl mono" }, k),
+              h("div", { className: "track" }, h("i", { style: { animationTimingFunction: e[k], animationDuration: "1.4s" } })));
+          })));
+      out.push(Section("Motion", null, "Durations and easing curves for transitions and animations.", rows));
+    })();
+
+    // z-index + breakpoints tables
+    function kvTable(obj, headKey, headVal, fmt) {
+      return h("table", null,
+        h("thead", null, h("tr", null, h("th", null, headKey), h("th", null, headVal))),
+        h("tbody", null, Object.keys(obj).map(function (k) {
+          return h("tr", { key: k }, h("td", { className: "mono" }, k), h("td", { className: "mono" }, fmt ? fmt(obj[k]) : String(obj[k])));
+        })));
+    }
+    out.push(Section("Z-index", Object.keys(DS.zIndex).length,
+      "Semantic stacking layers.", kvTable(DS.zIndex, "layer", "z-index")));
+    out.push(Section("Breakpoints", Object.keys(DS.breakpoints).length,
+      "Responsive grid tiers (min viewport width).", kvTable(DS.breakpoints, "name", "min-width", function (v) { return v + "px"; })));
+
+    var App = h("div", null,
+      h("h1", null, "Design Tokens"),
+      h("p", { className: "sub" }, "Live gallery of every token exported by ",
+        h("code", null, "@lumel/fluent2-ds"), " — read from ",
+        h("code", null, "window.LumelFluent2Ds"), " under a ",
+        h("code", null, "FluentProvider theme={lightTheme}"), "."),
+      out);
+
+    ReactDOM.createRoot(document.getElementById("root")).render(
+      h(FluentProvider, { theme: theme }, App));
+  })();
+  </script>
+</body>
+</html>

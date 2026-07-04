@@ -1,0 +1,129 @@
+<!-- @dsCard group="Themes" -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Themes — Fluent 2 DS</title>
+  <link rel="stylesheet" href="../styles.css" />
+  <link rel="stylesheet" href="../_ds_bundle.css" />
+  <style>
+    body { margin: 0; padding: 24px 28px 64px; background: #f3f2f1; color: #242424;
+           font-family: "Segoe UI", system-ui, -apple-system, sans-serif; }
+    h1 { font-size: 22px; margin: 0 0 2px; }
+    .sub { color: #616161; margin: 0 0 22px; font-size: 13px; max-width: 820px; }
+    .sub code { background: #e6e4e2; padding: 1px 5px; border-radius: 4px; }
+    .cols { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+    .panel { flex: 1 1 300px; min-width: 288px; border-radius: 10px; overflow: hidden;
+             border: 1px solid rgba(0,0,0,.14); box-shadow: 0 1.6px 3.6px rgba(0,0,0,.13); }
+    .panel > header { padding: 12px 16px; font-weight: 600; font-size: 14px;
+                      display: flex; align-items: center; gap: 8px; }
+    .panel > header .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .panel .inner { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+    .swrow { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+    .sw { display: flex; flex-direction: column; gap: 4px; }
+    .sw .chip { height: 34px; border-radius: 5px; border: 1px solid rgba(128,128,128,.35); }
+    .sw code { font: 10px/1.35 "Cascadia Code", Consolas, monospace; opacity: .85; word-break: break-all; }
+    .sw code.val { opacity: .6; }
+    .live { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .grouplabel { font: 600 10px/1 "Segoe UI"; text-transform: uppercase; letter-spacing: .06em; opacity: .5; }
+    .err { color: #a4262c; font: 13px "Segoe UI"; }
+  </style>
+</head>
+<body>
+  <div id="root"><p class="err" id="fallback">Loading themes… if this persists, ensure <code>_ds_bundle.js</code> is built.</p></div>
+
+  <script src="../_vendor/react.js"></script>
+  <script src="../_vendor/react-dom.js"></script>
+  <script src="../_ds_bundle.js"></script>
+  <script>
+  (function () {
+    var h = React.createElement, F = React.Fragment;
+    var DS = window.LumelFluent2Ds || {};
+    var FluentProvider = DS.FluentProvider;
+
+    if (!FluentProvider || !DS.themes) {
+      document.getElementById("fallback").textContent =
+        "⚠ window.LumelFluent2Ds not found or missing theme exports — build the bundle first.";
+      return;
+    }
+
+    var THEMES = [
+      { name: "lightTheme", key: "light", theme: DS.themes.light, accent: "#117865" },
+      { name: "darkTheme", key: "dark", theme: DS.themes.dark, accent: "#2AAC94" },
+      { name: "highContrastTheme", key: "highContrast", theme: DS.themes.highContrast, accent: "#ffff00" }
+    ];
+
+    // Representative tokens read straight off each theme object (literal values).
+    var SWATCHES = [
+      "colorNeutralBackground1", "colorNeutralBackground2", "colorNeutralBackground3",
+      "colorNeutralForeground1", "colorNeutralForeground2", "colorNeutralStroke1",
+      "colorBrandBackground", "colorBrandForeground1", "colorCompoundBrandBackground",
+      "colorStatusSuccessBackground3", "colorStatusWarningBackground3", "colorStatusDangerBackground3",
+      "colorRibbonIconSuccess", "colorDataSlot1"
+    ];
+
+    // Render a DS component only if the bundle actually exports it.
+    function comp(name, props, children) {
+      return DS[name] ? h(DS[name], props, children) : null;
+    }
+
+    function Swatch(theme, tokenName) {
+      var val = theme[tokenName];
+      if (val == null) return null;
+      return h("div", { className: "sw", key: tokenName },
+        h("div", { className: "chip", style: { background: val } }),
+        h("code", null, tokenName.replace("color", "")),
+        h("code", { className: "val" }, String(val)));
+    }
+
+    function Panel(entry) {
+      var t = entry.theme;
+      var bg = t.colorNeutralBackground1 || "#fff";
+      var fg = t.colorNeutralForeground1 || "#000";
+      var headerBg = t.colorNeutralBackground3 || bg;
+
+      // Live components rendered *inside* this theme's FluentProvider.
+      var live = h(FluentProvider, { theme: t, style: { background: "transparent" } },
+        h("div", { className: "inner", style: { padding: 0, gap: "14px" } },
+          h("div", null,
+            h("div", { className: "grouplabel", style: { color: fg, marginBottom: "6px" } }, "Buttons"),
+            h("div", { className: "live" },
+              comp("Button", { appearance: "primary" }, "Primary"),
+              comp("Button", { appearance: "outline" }, "Outline"),
+              comp("Button", { appearance: "subtle" }, "Subtle"),
+              comp("Button", { disabled: true }, "Disabled"))),
+          h("div", null,
+            h("div", { className: "grouplabel", style: { color: fg, marginBottom: "6px" } }, "Controls"),
+            h("div", { className: "live" },
+              comp("Switch", { defaultChecked: true, label: "On" }),
+              comp("Checkbox", { defaultChecked: true, label: "Checked" }),
+              comp("Badge", { appearance: "filled", color: "brand" }, "Badge"),
+              comp("Spinner", { size: "tiny" })))));
+
+      return h("div", { className: "panel", key: entry.key, style: { background: bg, color: fg } },
+        h("header", { style: { background: headerBg, color: fg, borderBottom: "1px solid " + (t.colorNeutralStroke2 || "rgba(128,128,128,.3)") } },
+          h("span", { className: "dot", style: { background: entry.accent } }),
+          entry.name,
+          h("code", { style: { marginLeft: "auto", opacity: .6, font: "11px monospace" } }, 'themes.' + entry.key)),
+        h("div", { className: "inner" },
+          h("div", null,
+            h("div", { className: "grouplabel", style: { marginBottom: "8px" } }, "Key tokens"),
+            h("div", { className: "swrow" }, SWATCHES.map(function (s) { return Swatch(t, s); }))),
+          h("div", { style: { borderTop: "1px solid " + (t.colorNeutralStroke2 || "rgba(128,128,128,.25)"), paddingTop: "14px" } }, live)));
+    }
+
+    var App = h("div", null,
+      h("h1", null, "Themes"),
+      h("p", { className: "sub" },
+        "The three DS themes, each applied via ", h("code", null, "<FluentProvider theme={…}>"), ". ",
+        "Swatches read literal token values off each theme object; the controls below are live components ",
+        "rendered inside that theme's provider. Switch themes at runtime with ",
+        h("code", null, "themes[mode]"), "."),
+      h("div", { className: "cols" }, THEMES.map(function (e) { return Panel(e); })));
+
+    ReactDOM.createRoot(document.getElementById("root")).render(App);
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "name": "@lumel/fluent2-ds-bundle",
+  "version": "0.1.0-alpha.1",
+  "private": true,
+  "description": "Design tokens and themes for the Fluent 2 Design System bundle, built on @fluentui/react-components v9.",
+  "type": "module",
+  "main": "index.ts",
+  "types": "index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fluentui/react-components": "^9.74.1",
+    "@fluentui/react-icons": "^2.0.328",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

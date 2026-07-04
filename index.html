@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fluent 2 DS — Preview Explorer</title>
+  <style>
+    :root{
+      --accent:#117865;          /* brand primary (teal) */
+      --accent-fg:#0a5c50;
+      --accent-bg:#e3f7ef;       /* brand 160 */
+      --bg:#f5f6f7;
+      --panel:#ffffff;
+      --border:#e5e7eb;
+      --border-strong:#d1d5db;
+      --text:#1f2328;
+      --muted:#6b7280;
+      --muted-2:#9ca3af;
+      --radius:8px;
+      --sidebar-w:312px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+      color:var(--text);
+      background:var(--bg);
+    }
+    .app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;height:100vh;height:100dvh}
+
+    /* ── Sidebar ─────────────────────────────────────────────────────── */
+    .sidebar{
+      display:flex;flex-direction:column;min-height:0;
+      background:var(--panel);border-right:1px solid var(--border);
+    }
+    .brand{padding:16px 16px 12px;border-bottom:1px solid var(--border)}
+    .brand h1{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+    .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex:none}
+    .brand p{margin:4px 0 0;font-size:12px;color:var(--muted)}
+    .search-wrap{padding:12px 12px 8px;position:relative}
+    .search-wrap svg{position:absolute;left:22px;top:50%;transform:translateY(-50%);color:var(--muted-2);pointer-events:none}
+    #search{
+      width:100%;padding:8px 30px 8px 32px;font-size:13px;color:var(--text);
+      border:1px solid var(--border-strong);border-radius:6px;background:#fff;outline:none;
+    }
+    #search:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg)}
+    .clear-btn{
+      position:absolute;right:20px;top:50%;transform:translateY(-50%);
+      border:0;background:none;color:var(--muted-2);cursor:pointer;font-size:16px;line-height:1;
+      padding:2px 4px;border-radius:4px;display:none;
+    }
+    .clear-btn:hover{color:var(--text);background:var(--bg)}
+    .count{padding:0 16px 8px;font-size:11px;color:var(--muted-2);text-transform:uppercase;letter-spacing:.05em}
+    .list{flex:1;min-height:0;overflow-y:auto;padding:0 8px 16px}
+
+    .group{margin-top:6px}
+    .group-hd{
+      display:flex;align-items:center;gap:6px;width:100%;
+      padding:6px 8px;border:0;background:none;cursor:pointer;
+      font:600 11px/1 system-ui;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;
+      border-radius:6px;
+    }
+    .group-hd:hover{background:var(--bg)}
+    .group-hd .chev{transition:transform .15s ease;color:var(--muted-2)}
+    .group.collapsed .chev{transform:rotate(-90deg)}
+    .group.collapsed .items{display:none}
+    .group-hd .g-count{margin-left:auto;font-weight:500;color:var(--muted-2)}
+    .items{display:flex;flex-direction:column;gap:1px;padding:2px 0 4px}
+
+    .item{
+      display:flex;align-items:center;gap:8px;
+      padding:7px 10px;border:0;background:none;cursor:pointer;text-align:left;
+      border-radius:6px;color:var(--text);font-size:13px;width:100%;
+      border-left:2px solid transparent;
+    }
+    .item:hover{background:var(--bg)}
+    .item.cursor{background:var(--bg)}
+    .item.active{background:var(--accent-bg);border-left-color:var(--accent);color:var(--accent-fg);font-weight:600}
+    .item .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .item .pth{margin-left:auto;font-size:10px;color:var(--muted-2);white-space:nowrap}
+    .item.active .pth{color:var(--accent)}
+
+    .empty{padding:24px 16px;color:var(--muted);font-size:13px;text-align:center}
+
+    /* ── Main preview pane ───────────────────────────────────────────── */
+    .main{display:flex;flex-direction:column;min-width:0;min-height:0}
+    .toolbar{
+      display:flex;align-items:center;gap:12px;
+      padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--border);min-height:52px;
+    }
+    .toolbar .title{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .toolbar .tag{font-size:11px;font-weight:600;color:var(--accent-fg);background:var(--accent-bg);padding:2px 8px;border-radius:999px;flex:none}
+    .toolbar .path{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+    .toolbar .actions{display:flex;gap:6px;flex:none}
+    .tb-btn{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:6px 10px;font-size:12px;font-weight:500;color:var(--text);text-decoration:none;
+      border:1px solid var(--border-strong);border-radius:6px;background:#fff;cursor:pointer;
+    }
+    .tb-btn:hover{background:var(--bg);border-color:var(--muted-2)}
+    .frame-wrap{position:relative;flex:1;min-height:0;background:var(--bg)}
+    iframe{width:100%;height:100%;border:0;background:#fff;display:block}
+    .placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
+    .kbd{font:11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg);border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:2px 5px;color:var(--muted)}
+
+    /* ── Responsive ──────────────────────────────────────────────────── */
+    @media (max-width:760px){
+      .app{grid-template-columns:1fr;grid-template-rows:44vh 1fr}
+      .sidebar{border-right:0;border-bottom:1px solid var(--border)}
+      .toolbar .path{display:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <h1><span class="dot"></span> Fluent 2 DS Explorer</h1>
+        <p>Preview pages · <span id="totalCount">0</span> total</p>
+      </div>
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input id="search" type="search" placeholder="Search components, tokens…" autocomplete="off" spellcheck="false" aria-label="Search preview pages">
+        <button class="clear-btn" id="clearBtn" title="Clear (Esc)" aria-label="Clear search">&times;</button>
+      </div>
+      <div class="count" id="showing"></div>
+      <nav class="list" id="list" aria-label="Preview pages"></nav>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+      <div class="toolbar">
+        <span class="tag" id="curGroup" hidden></span>
+        <span class="title" id="curTitle">Select a page</span>
+        <span class="path" id="curPath"></span>
+        <span class="actions">
+          <button class="tb-btn" id="reloadBtn" title="Reload preview">&#8635; Reload</button>
+          <a class="tb-btn" id="openBtn" target="_blank" rel="noopener" title="Open in new tab">Open ↗</a>
+        </span>
+      </div>
+      <div class="frame-wrap">
+        <div class="placeholder" id="placeholder">
+          Pick a page from the left, or press <span class="kbd">/</span> to search.
+        </div>
+        <iframe id="frame" title="Preview" hidden></iframe>
+      </div>
+    </main>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    // ── Manifest (paths derived from repo structure) ───────────────────
+    var GROUP_LABELS = {
+      Foundations: "Foundations",
+      Action: "Action",
+      DataDisplay: "Data Display",
+      Feedback: "Feedback",
+      FormInputs: "Form Inputs",
+      Layout: "Layout",
+      Navigation: "Navigation",
+      Overlay: "Overlay"
+    };
+    var FOUNDATIONS = [
+      { name: "Tokens", path: "tokens/Tokens.html" },
+      { name: "Themes", path: "themes/Themes.html" }
+    ];
+    var COMPONENTS = {
+      Action: ["Button", "Link", "Menu", "MenuButton", "SplitButton", "ToggleButton", "Toolbar"],
+      DataDisplay: ["AvatarGroup", "Card", "DataCard", "DataTable", "Icon", "Image", "InteractionTag", "Persona", "Rating", "Tag", "Tree", "UserAvatar"],
+      Feedback: ["CounterBadge", "DSToaster", "MessageBar", "PresenceBadge", "ProgressBar", "Skeleton", "Spinner", "StatusBadge"],
+      FormInputs: ["Checkbox", "Combobox", "DatePicker", "Dropdown", "FileUpload", "InfoLabel", "RadioGroup", "SearchInput", "Select", "Slider", "SpinButton", "Switch", "TagPicker", "TextField", "Textarea", "TimePicker"],
+      Layout: ["Divider", "EmptyState"],
+      Navigation: ["Accordion", "Breadcrumb", "PageHeader", "Pagination", "SideNav", "Stepper", "Tabs"],
+      Overlay: ["ConfirmDialog", "Dialog", "Drawer", "Popover", "TeachingPopover", "Tooltip"]
+    };
+
+    var GROUPS = [];
+    GROUPS.push({ key: "Foundations", items: FOUNDATIONS.map(function (f) {
+      return { name: f.name, path: f.path, group: "Foundations" };
+    }) });
+    ["Action", "DataDisplay", "Feedback", "FormInputs", "Layout", "Navigation", "Overlay"].forEach(function (key) {
+      GROUPS.push({ key: key, items: COMPONENTS[key].map(function (n) {
+        return { name: n, path: "components/" + key + "/" + n + "/" + n + ".html", group: key };
+      }) });
+    });
+
+    var ALL = [];
+    GROUPS.forEach(function (g) { g.items.forEach(function (it) { ALL.push(it); }); });
+    var BY_PATH = {};
+    ALL.forEach(function (it) { BY_PATH[it.path] = it; });
+
+    // ── DOM refs ───────────────────────────────────────────────────────
+    var listEl = document.getElementById("list");
+    var searchEl = document.getElementById("search");
+    var clearBtn = document.getElementById("clearBtn");
+    var showingEl = document.getElementById("showing");
+    var frameEl = document.getElementById("frame");
+    var placeholderEl = document.getElementById("placeholder");
+    var curTitle = document.getElementById("curTitle");
+    var curGroup = document.getElementById("curGroup");
+    var curPath = document.getElementById("curPath");
+    var openBtn = document.getElementById("openBtn");
+    var reloadBtn = document.getElementById("reloadBtn");
+    document.getElementById("totalCount").textContent = String(ALL.length);
+
+    // ── State ──────────────────────────────────────────────────────────
+    var collapsed = {};          // group key -> true when collapsed
+    var activePath = null;
+    var visible = [];            // flat list of currently-visible items (search order)
+    var cursor = -1;             // keyboard cursor index into `visible`
+
+    function norm(s) { return (s || "").toLowerCase(); }
+    function matches(it, q) {
+      if (!q) return true;
+      return norm(it.name).indexOf(q) !== -1 ||
+             norm(GROUP_LABELS[it.group]).indexOf(q) !== -1 ||
+             norm(it.path).indexOf(q) !== -1;
+    }
+
+    // ── Render sidebar list ────────────────────────────────────────────
+    function render() {
+      var q = norm(searchEl.value.trim());
+      clearBtn.style.display = q ? "block" : "none";
+      listEl.innerHTML = "";
+      visible = [];
+      var shown = 0;
+
+      GROUPS.forEach(function (g) {
+        var items = g.items.filter(function (it) { return matches(it, q); });
+        if (!items.length) return;
+        shown += items.length;
+
+        var isCollapsed = !q && collapsed[g.key]; // searching always expands
+        var groupDiv = document.createElement("div");
+        groupDiv.className = "group" + (isCollapsed ? " collapsed" : "");
+
+        var hd = document.createElement("button");
+        hd.className = "group-hd";
+        hd.innerHTML =
+          '<span class="chev">▾</span>' +
+          '<span>' + GROUP_LABELS[g.key] + '</span>' +
+          '<span class="g-count">' + items.length + '</span>';
+        hd.addEventListener("click", function () {
+          collapsed[g.key] = !collapsed[g.key];
+          render();
+        });
+        groupDiv.appendChild(hd);
+
+        var itemsWrap = document.createElement("div");
+        itemsWrap.className = "items";
+        items.forEach(function (it) {
+          var idx = visible.length;
+          visible.push(it);
+          var btn = document.createElement("button");
+          btn.className = "item" + (it.path === activePath ? " active" : "");
+          btn.dataset.path = it.path;
+          btn.dataset.idx = String(idx);
+          if (it.path === activePath) btn.setAttribute("aria-current", "page");
+          btn.innerHTML =
+            '<span class="nm"></span>' +
+            (g.key === "Foundations" ? '<span class="pth">' + it.path.split("/")[0] + '/</span>' : "");
+          btn.querySelector(".nm").textContent = it.name;
+          btn.addEventListener("click", function () {
+            cursor = idx;
+            select(it.path, true);
+          });
+          itemsWrap.appendChild(btn);
+        });
+        groupDiv.appendChild(itemsWrap);
+        listEl.appendChild(groupDiv);
+      });
+
+      if (!visible.length) {
+        var e = document.createElement("div");
+        e.className = "empty";
+        e.textContent = 'No pages match “' + searchEl.value.trim() + '”';
+        listEl.appendChild(e);
+      }
+
+      showingEl.textContent = q
+        ? ("Showing " + shown + " of " + ALL.length)
+        : (ALL.length + " pages");
+
+      if (cursor >= visible.length) cursor = visible.length - 1;
+      paintCursor();
+    }
+
+    function paintCursor() {
+      var nodes = listEl.querySelectorAll(".item");
+      nodes.forEach(function (n) {
+        n.classList.toggle("cursor", Number(n.dataset.idx) === cursor);
+      });
+    }
+
+    // ── Select / load a page ───────────────────────────────────────────
+    function select(path, pushHash) {
+      if (!BY_PATH[path]) return;          // only load known repo files
+      activePath = path;
+      var it = BY_PATH[path];
+
+      placeholderEl.hidden = true;
+      frameEl.hidden = false;
+      if (frameEl.getAttribute("src") !== path) frameEl.setAttribute("src", path);
+
+      curTitle.textContent = it.name;
+      curGroup.hidden = false;
+      curGroup.textContent = GROUP_LABELS[it.group];
+      curPath.textContent = path;
+      openBtn.setAttribute("href", path);
+
+      if (pushHash) {
+        var h = "#" + path;
+        if (location.hash !== h) location.hash = h;
+      }
+
+      // refresh active highlight without full re-render when possible
+      var nodes = listEl.querySelectorAll(".item");
+      nodes.forEach(function (n) {
+        var on = n.dataset.path === path;
+        n.classList.toggle("active", on);
+        if (on) { n.setAttribute("aria-current", "page"); }
+        else { n.removeAttribute("aria-current"); }
+      });
+
+      // keep the active item in view
+      var activeNode = listEl.querySelector('.item[data-path="' + cssEsc(path) + '"]');
+      if (activeNode && activeNode.scrollIntoView) {
+        activeNode.scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    function cssEsc(s) { return s.replace(/["\\]/g, "\\$&"); }
+
+    // ── Hash routing ───────────────────────────────────────────────────
+    function pathFromHash() {
+      var h = decodeURIComponent(location.hash.replace(/^#/, ""));
+      return BY_PATH[h] ? h : null;
+    }
+    window.addEventListener("hashchange", function () {
+      var p = pathFromHash();
+      if (p && p !== activePath) select(p, false);
+    });
+
+    // ── Toolbar buttons ────────────────────────────────────────────────
+    reloadBtn.addEventListener("click", function () {
+      if (activePath) {
+        // force reload of the iframe document
+        frameEl.setAttribute("src", "about:blank");
+        setTimeout(function () { frameEl.setAttribute("src", activePath); }, 0);
+      }
+    });
+
+    // ── Search interactions ────────────────────────────────────────────
+    searchEl.addEventListener("input", function () { cursor = visible.length ? 0 : -1; render(); });
+    clearBtn.addEventListener("click", function () {
+      searchEl.value = ""; cursor = -1; render(); searchEl.focus();
+    });
+
+    searchEl.addEventListener("keydown", function (ev) {
+      if (ev.key === "ArrowDown") {
+        ev.preventDefault();
+        if (visible.length) { cursor = Math.min(cursor + 1, visible.length - 1); paintCursor(); scrollCursorIntoView(); }
+      } else if (ev.key === "ArrowUp") {
+        ev.preventDefault();
+        if (visible.length) { cursor = Math.max(cursor - 1, 0); paintCursor(); scrollCursorIntoView(); }
+      } else if (ev.key === "Enter") {
+        ev.preventDefault();
+        var target = (cursor >= 0 && cursor < visible.length) ? visible[cursor] : visible[0];
+        if (target) select(target.path, true);
+      } else if (ev.key === "Escape") {
+        if (searchEl.value) { ev.preventDefault(); searchEl.value = ""; cursor = -1; render(); }
+      }
+    });
+
+    function scrollCursorIntoView() {
+      var n = listEl.querySelector('.item[data-idx="' + cursor + '"]');
+      if (n && n.scrollIntoView) n.scrollIntoView({ block: "nearest" });
+    }
+
+    // global "/" focuses search
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "/" && document.activeElement !== searchEl) {
+        ev.preventDefault(); searchEl.focus(); searchEl.select();
+      }
+    });
+
+    // ── Init ───────────────────────────────────────────────────────────
+    render();
+    var initial = pathFromHash() || ALL[0].path;
+    // set cursor to the initial item's position in the (unfiltered) visible list
+    for (var i = 0; i < visible.length; i++) { if (visible[i].path === initial) { cursor = i; break; } }
+    select(initial, !location.hash);
+  })();
+  </script>
+</body>
+</html>
